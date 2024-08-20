@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SOLAR SYSTEM</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      position: relative;
+    }
+
+    #canvas {
+      display: block;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    #time-calendar {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-size: 18px;
+      color: white;
+    }
+
+    #zoom-buttons {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+    }
+
+    .zoom-btn {
+      margin: 5px;
+      padding: 5px 10px;
+      font-size: 16px;
+      background: radial-gradient(#3c84f7, transparent);
+      color: #333;
+      border: 0px solid #3c84f7;
+      border-radius: 20px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <div id="time-calendar"></div>
+  <div id="zoom-buttons">
+    <button class="zoom-btn" id="zoom-in-btn">Zoom In</button>
+    <button class="zoom-btn" id="zoom-out-btn">Zoom Out</button>
+  </div>
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let zoomFactor = 1;
+    const zoomIncrement = 0.1;
+    const maxZoom = 2;
+    const minZoom = 0.5;
+
+    const sun = {
+      x: canvas.width / 2,
+      y: canvas.height / 2,
+      radius: 40,
+      speed: 0.005,
+    };
+
+    const earth = {
+      x: canvas.width / 2 + 160,
+      y: canvas.height / 2,
+      radius: 12,
+      angle: 0,
+      orbitRadius: 160,
+      speed: 0.01,
+      name: 'Earth',
+    };
+
+    const moon = {
+      radius: 6,
+      angle: 0,
+      orbitRadius: 30,
+      speed: 0.02,
+      name: 'Moon',
+    };
+
+    const jupiter = {
+      x: canvas.width / 2 + 400,
+      y: canvas.height / 2,
+      radius: 14,
+      angle: 0,
+      orbitRadius: 400,
+      speed: 0.005,
+      name: 'Jupiter',
+    };
+
+    const mars = {
+      x: canvas.width / 2 + 228,
+      y: canvas.height / 2,
+      radius: 15,
+      angle: 0,
+      orbitRadius: 228,
+      speed: 0.007,
+      name: 'Mars',
+    };
+
+    const venus = {
+      x: canvas.width / 2 + 100,
+      y: canvas.height / 2,
+      radius: 10,
+      angle: 0,
+      orbitRadius: 100,
+      speed: 0.015,
+      name: 'Venus',
+    };
+
+    const saturn = {
+      x: canvas.width / 2 + 500,
+      y: canvas.height / 2,
+      radius: 30,
+      angle: 0,
+      orbitRadius: 500,
+      speed: 0.002,
+      name: 'Saturn',
+    };
+
+    const mercury = {
+      x: canvas.width / 2 + 60,
+      y: canvas.height / 2,
+      radius: 5,
+      angle: 0,
+      orbitRadius: 60,
+      speed: 0.095,
+      name: 'mercury'
+    };
+
+    const asteroidBelt = {
+      count: 150,
+      minRadius: 280,
+      maxRadius: 320,
+      minSize: 2,
+      maxSize: 6,
+      asteroids: [],
+    };
+
+    const spaceBackground = new Image();
+    spaceBackground.src = 'space-background.png';
+
+    const sunImage = new Image();
+    sunImage.src = 'sun.png';
+
+    const earthImage = new Image();
+    earthImage.src = 'earth.png';
+
+    const moonImage = new Image();
+    moonImage.src = 'moon.png';
+
+    const jupiterImage = new Image();
+    jupiterImage.src = 'jupiter.png';
+
+    const marsImage = new Image();
+    marsImage.src = 'mars.png';
+
+    const venusImage = new Image();
+    venusImage.src = 'venus.png';
+    
+    const mercuryImage = new Image();
+    mercuryImage.src = 'mercury.png' 
+
+    const saturnImage = new Image();
+    saturnImage.src = 'saturn.png';
+
+    const cometImage = new Image();
+    cometImage.src = 'comet.png';
+
+    class Comet {
+      constructor(x, y, speed, size) {
+        this.x = x;
+        this.y = y;
+        this.speed = speed;
+        this.size = size;
+        this.angle = Math.random() * (Math.PI * 2);
+        this.speedX = this.speed * Math.cos(this.angle);
+        this.speedY = this.speed * Math.sin(this.angle);
+      }
+
+      move() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+      }
+
+      draw() {
+        ctx.drawImage(
+          cometImage,
+          this.x - this.size,
+          this.y - this.size,
+          this.size * 2,
+          this.size * 2
+        );
+      }
+    }                      //made by @ayaan_ali_73 instagram
+
+    function createAsteroids() {
+      for (let i = 0; i < asteroidBelt.count; i++) {
+        const radius = Math.random() * (asteroidBelt.maxRadius - asteroidBelt.minRadius) + asteroidBelt.minRadius;
+        const angle = Math.random() * Math.PI * 2;
+        const size = Math.random() * (asteroidBelt.maxSize - asteroidBelt.minSize) + asteroidBelt.minSize;
+        asteroidBelt.asteroids.push({ radius, angle, size });
+      }
+    }
+
+    const comets = [];
+    function generateComets() {
+      setInterval(() => {
+        if (comets.length < 10) {
+          const x = Math.random() * canvas.width;
+          const y = Math.random() * canvas.height;
+          const speed = Math.random() * 3 + 1;
+          const size = Math.random() * 20 + 5;
+          const comet = new Comet(x, y, speed, size);
+          comets.push(comet);
+        }
+      }, 2000);
+    }
+
+    function drawAsteroids() {
+      ctx.fillStyle = 'gray';
+      for (let i = 0; i < asteroidBelt.count; i++) {
+        const asteroid = asteroidBelt.asteroids[i];
+        const x = sun.x + asteroid.radius * Math.cos(asteroid.angle);
+        const y = sun.y + asteroid.radius * Math.sin(asteroid.angle);
+        ctx.beginPath();
+        ctx.arc(x, y, asteroid.size, 0, Math.PI * 2);
+        ctx.fill();
+        asteroid.angle += 0.003;
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw space background
+      ctx.drawImage(spaceBackground, 0, 0, canvas.width, canvas.height);
+
+      // Dim the entire canvas
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Shining Sun effect
+      ctx.save();
+      ctx.globalAlpha = 0.5;
+      const gradient = ctx.createRadialGradient(
+        sun.x,
+        sun.y,
+        sun.radius * 0.8 * zoomFactor,
+        sun.x,
+        sun.y,
+        sun.radius * 1.2 * zoomFactor
+      );
+      gradient.addColorStop(0, 'rgba(255, 255, 0, 0.8)');
+      gradient.addColorStop(1, 'rgba(255, 255, 0, 0)');
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(sun.x, sun.y, sun.radius * 1.2 * zoomFactor, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+
+      ctx.drawImage(
+        sunImage,
+        sun.x - sun.radius * zoomFactor,
+        sun.y - sun.radius * zoomFactor,
+        sun.radius * 2 * zoomFactor,
+        sun.radius * 2 * zoomFactor
+      );
+
+      // Draw Earth with glowing effect
+      earth.x = sun.x + earth.orbitRadius * Math.cos(earth.angle);
+      earth.y = sun.y + earth.orbitRadius * Math.sin(earth.angle);
+      ctx.save();
+      ctx.translate(earth.x, earth.y);
+      ctx.rotate(earth.angle);
+
+      // Glowing effect
+      ctx.save();
+      ctx.globalAlpha = 0.5;
+      const earthGlow = ctx.createRadialGradient(0, 0, 0, 0, 0, earth.radius * 2 * zoomFactor);
+      earthGlow.addColorStop(0, 'rgba(0, 0, 255, 0.8)');
+      earthGlow.addColorStop(1, 'rgba(0, 0, 255, 0)');
+      ctx.fillStyle = earthGlow;
+      ctx.beginPath();
+      ctx.arc(0, 0, earth.radius * 2 * zoomFactor, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+
+      ctx.drawImage(
+        earthImage,
+        -earth.radius * zoomFactor,
+        -earth.radius * zoomFactor,
+        earth.radius * 2 * zoomFactor,
+        earth.radius * 2 * zoomFactor
+      );
+      ctx.restore();
+
+      // Draw Moon with glowing effect
+      moon.x = earth.x + moon.orbitRadius * Math.cos(moon.angle);
+      moon.y = earth.y + moon.orbitRadius * Math.sin(moon.angle);
+      ctx.save();
+      ctx.translate(moon.x, moon.y);
+      ctx.rotate(moon.angle);
+
+      // Glowing effect
+      ctx.save();
+      ctx.globalAlpha = 0.5;
+      const moonGlow = ctx.createRadialGradient(0, 0, 0, 0, 0, moon.radius * 2 * zoomFactor);
+      moonGlow.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+      moonGlow.addColorStop(1, 'rgba(255, 255, 255, 0)');
+      ctx.fillStyle = moonGlow;
+      ctx.beginPath();
+      ctx.arc(0, 0, moon.radius * 2 * zoomFactor, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+
+      ctx.drawImage(
+        moonImage,
+        -moon.radius * zoomFactor,
+        -moon.radius * zoomFactor,
+        moon.radius * 2 * zoomFactor,
+        moon.radius * 2 * zoomFactor
+      );
+      ctx.restore();
+
+      // Draw Jupiter with glowing effect
+      jupiter.x = sun.x + jupiter.orbitRadius * Math.cos(jupiter.angle);
+      jupiter.y = sun.y + jupiter.orbitRadius * Math.sin(jupiter.angle);
+      ctx.save();
+      ctx.translate(jupiter.x, jupiter.y);
+      ctx.rotate(jupiter.angle);
+
+      // Glowing effect
+      ctx.save();
+      ctx.globalAlpha = 0.5;
+      const jupiterGlow = ctx.createRadialGradient(
+        0,
+        0,
+        0,
+        0,
+        0,
+        jupiter.radius * 2 * zoomFactor
+      );
+      jupiterGlow.addColorStop(0, 'rgba(255, 255, 0, 0.8)');
+      jupiterGlow.addColorStop(1, 'rgba(255, 255, 0, 0)');
+      ctx.fillStyle = jupiterGlow;
+      ctx.beginPath();
+      ctx.arc(0, 0, jupiter.radius * 2 * zoomFactor, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+
+      ctx.drawImage(
+        jupiterImage,
+        -jupiter.radius * zoomFactor,
+        -jupiter.radius * zoomFactor,
+        jupiter.radius * 2 * zoomFactor,
+        jupiter.radius * 2 * zoomFactor
+      );
+      ctx.restore();
+
+      // Draw Mars with glowing effect
+      mars.x = sun.x + mars.orbitRadius * Math.cos(mars.angle);
+      mars.y = sun.y + mars.orbitRadius * Math.sin(mars.angle);
+      ctx.save();
+      ctx.translate(mars.x, mars.y);
+      ctx.rotate(mars.angle);
+
+      // Glowing effect
+      ctx.save();
+      ctx.globalAlpha = 0.5;
+      const marsGlow = ctx.createRadialGradient(0, 0, 0, 0, 0, mars.radius * 2 * zoomFactor);
+      marsGlow.addColorStop(0, 'rgba(255, 0, 0, 0.8)');
+      marsGlow.addColorStop(1, 'rgba(255, 0, 0, 0)');
+      ctx.fillStyle = marsGlow;
+      ctx.beginPath();
+      ctx.arc(0, 0, mars.radius * 2 * zoomFactor, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+
+      ctx.drawImage(
+        marsImage,
+        -mars.radius * zoomFactor,
+        -mars.radius * zoomFactor,
+        mars.radius * 2 * zoomFactor,
+        mars.radius * 2 * zoomFactor
+      );
+      ctx.restore();
+
+      // Draw Venus with glowing effect
+      venus.x = sun.x + venus.orbitRadius * Math.cos(venus.angle);
+      venus.y = sun.y + venus.orbitRadius * Math.sin(venus.angle);
+      ctx.save();
+      ctx.translate(venus.x, venus.y);
+      ctx.rotate(venus.angle);
+
+      // Glowing effect
+      ctx.save();
+      ctx.globalAlpha = 0.5;
+      const venusGlow = ctx.createRadialGradient(
+        0,
+        0,
+        0,
+        0,
+        0,
+        venus.radius * 2 * zoomFactor
+      );
+      venusGlow.addColorStop(0, 'rgba(255, 192, 203, 0.8)');
+      venusGlow.addColorStop(1, 'rgba(255, 192, 203, 0)');
+      ctx.fillStyle = venusGlow;
+      ctx.beginPath();
+      ctx.arc(0, 0, venus.radius * 2 * zoomFactor, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+
+      ctx.drawImage(
+        venusImage,
+        -venus.radius * zoomFactor,
+        -venus.radius * zoomFactor,
+        venus.radius * 2 * zoomFactor,
+        venus.radius * 2 * zoomFactor
+      );
+      ctx.restore();
+
+       // Draw Saturn with glowing effect
+       saturn.x = sun.x + saturn.orbitRadius * Math.cos(saturn.angle);
+      saturn.y = sun.y + saturn.orbitRadius * Math.sin(saturn.angle);
+      ctx.save();
+      ctx.translate(saturn.x, saturn.y);
+      ctx.rotate(saturn.angle);
+
+      // Glowing effect
+      ctx.save();
+      ctx.globalAlpha = 0.5;
+      const saturnGlow = ctx.createRadialGradient(
+        0,
+        0,
+        0,
+        0,
+        0,
+        saturn.radius * 2 * zoomFactor
+      );
+      saturnGlow.addColorStop(0, 'rgba(204, 204, 0, 0.8)');
+      saturnGlow.addColorStop(1, 'rgba(204, 204, 0, 0)');
+      ctx.fillStyle = saturnGlow;
+      ctx.beginPath();
+      ctx.arc(0, 0, saturn.radius * 2 * zoomFactor, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+
+      ctx.drawImage(
+        saturnImage,
+        -saturn.radius * zoomFactor,
+        -saturn.radius * zoomFactor,
+        saturn.radius * 2 * zoomFactor,
+        saturn.radius * 2 * zoomFactor
+      );
+      ctx.restore();
+
+      // Draw mercury with glowing effect
+      mercury.x = sun.x + mercury.orbitRadius * Math.cos(mercury.angle);
+      mercury.y = sun.y + mercury.orbitRadius * Math.sin(mercury.angle);
+      ctx.save();
+      ctx.translate(mercury.x, mercury.y);
+      ctx.rotate(mercury.angle);
+
+      // Glowing effect
+      ctx.save();
+      ctx.globalAlpha = 0.5;
+      const mercuryGlow = ctx.createRadialGradient(
+        0,
+        0,
+        0,
+        0,
+        0,
+        mercury.radius * 2 * zoomFactor
+      );
+      mercuryGlow.addColorStop(0, 'rgba(204, 204, 0, 0.8)');
+      mercuryGlow.addColorStop(1, 'rgba(204, 204, 0, 0)');
+      ctx.fillStyle = mercuryGlow;
+      ctx.beginPath();
+      ctx.arc(0, 0, mercury.radius * 2 * zoomFactor, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+
+      ctx.drawImage(
+        mercuryImage,
+        -mercury.radius * zoomFactor,
+        -mercury.radius * zoomFactor,
+        mercury.radius * 2 * zoomFactor,
+        mercury.radius * 2 * zoomFactor
+      );
+      ctx.restore();
+
+      // Draw lines from Sun to planets
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+      ctx.beginPath();
+      ctx.moveTo(sun.x, sun.y);
+      ctx.lineTo(earth.x, earth.y);
+      ctx.moveTo(sun.x, sun.y);
+      ctx.lineTo(moon.x, moon.y);
+      ctx.moveTo(sun.x, sun.y);
+      ctx.lineTo(jupiter.x, jupiter.y);
+      ctx.moveTo(sun.x, sun.y);
+      ctx.lineTo(mars.x, mars.y);
+      ctx.moveTo(sun.x, sun.y);
+      ctx.lineTo(venus.x, venus.y);
+      ctx.moveTo(sun.x, sun.y);
+      ctx.lineTo(saturn.x, saturn.y);
+      ctx.moveTo(sun.x, sun.y);
+      ctx.lineTo(mercury.x, mercury.y);
+      ctx.stroke();
+
+      // Draw circular orbits
+      drawOrbit(earth.orbitRadius * zoomFactor);
+      drawOrbit(moon.orbitRadius * zoomFactor);
+      drawOrbit(jupiter.orbitRadius * zoomFactor);
+      drawOrbit(mars.orbitRadius * zoomFactor);
+      drawOrbit(venus.orbitRadius * zoomFactor);
+      drawOrbit(saturn.orbitRadius * zoomFactor);
+      drawOrbit(mercury.orbitRadius * zoomFactor);
+
+      // Draw planet names
+      ctx.font = '14px Arial';
+      ctx.fillStyle = 'white';
+      ctx.textAlign = 'center';
+      ctx.fillText(earth.name, earth.x, earth.y + earth.radius * zoomFactor + 20);
+      ctx.fillText(moon.name, moon.x, moon.y + moon.radius * zoomFactor + 20);
+      ctx.fillText(jupiter.name, jupiter.x, jupiter.y + jupiter.radius * zoomFactor + 20);
+      ctx.fillText(mars.name, mars.x, mars.y + mars.radius * zoomFactor + 20);
+      ctx.fillText(venus.name, venus.x, venus.y + venus.radius * zoomFactor + 20);
+      ctx.fillText(saturn.name, saturn.x, saturn.y + saturn.radius * zoomFactor + 20);
+      ctx.fillText(mercury.name, mercury.x, mercury.y + mercury.radius * zoomFactor + 20);
+      drawAsteroids();
+
+      for (let i = comets.length - 1; i >= 0; i--) {
+        comets[i].move();
+        comets[i].draw();
+        if (
+          comets[i].x < 0 ||
+          comets[i].x > canvas.width ||
+          comets[i].y < 0 ||
+          comets[i].y > canvas.height
+        ) {
+          comets.splice(i, 1);
+        }
+      }
+
+      earth.angle += earth.speed;
+      moon.angle += moon.speed;
+      jupiter.angle += jupiter.speed;
+      mars.angle += mars.speed;
+      venus.angle += venus.speed;
+      saturn.angle += saturn.speed;
+      mercury.angle += mercury.speed;
+      sun.angle += sun.speed;
+
+      const now = new Date();
+      const timeString = now.toLocaleTimeString();
+      const dateString = now.toLocaleDateString();
+      const dateTimeString = `${dateString} - ${timeString}`;
+      document.getElementById('time-calendar').textContent = dateTimeString;
+
+      requestAnimationFrame(draw);
+    }
+
+    function drawOrbit(radius) {
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.beginPath();
+      ctx.arc(sun.x, sun.y, radius, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    function handleZoomIn() {
+      if (zoomFactor < maxZoom) {
+        zoomFactor += zoomIncrement;
+      }
+    }
+
+    function handleZoomOut() {
+      if (zoomFactor > minZoom) {
+        zoomFactor -= zoomIncrement;
+      }
+    }
+
+    createAsteroids();
+    generateComets();
+    draw();
+
+    window.addEventListener('resize', () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    });
+
+    document.getElementById('zoom-in-btn').addEventListener('click', handleZoomIn);
+    document.getElementById('zoom-out-btn').addEventListener('click', handleZoomOut);
+  </script>
+</body>
+</html>
